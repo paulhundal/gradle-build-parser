@@ -7,18 +7,24 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import picocli.CommandLine
 import picocli.CommandLine.IFactory
+import utils.BuildFilesLocation
+import utils.DefaultBuildFilesLocation
+import utils.DefaultFileWriter
 import utils.DefaultFindProjectFiles
+import utils.FileWriter
 import utils.FindProjectFiles
 
 internal class PicoFactory : IFactory {
 
   private val commands = module {
-    single { ListBuildFilesCommand(get(), get()) }
+    single { ListBuildFilesCommand(get(), get(), get(), get()) }
   }
 
   private val utils = module {
     single<FindProjectFiles> { DefaultFindProjectFiles() }
     single<Logger> { LoggerFactory.getLogger("AstParser") }
+    single<FileWriter> { DefaultFileWriter(get()) }
+    single<BuildFilesLocation> { DefaultBuildFilesLocation() }
   }
 
   private val koin by lazy {

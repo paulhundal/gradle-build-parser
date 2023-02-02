@@ -5,6 +5,8 @@ import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
 import picocli.CommandLine.Mixin
+import utils.BuildFilesLocation
+import utils.FileWriter
 import utils.FindProjectFiles
 import java.util.concurrent.Callable
 
@@ -18,7 +20,9 @@ import java.util.concurrent.Callable
 )
 internal class ListBuildFilesCommand(
   private val logger: Logger,
-  private val findProjectFiles: FindProjectFiles
+  private val findProjectFiles: FindProjectFiles,
+  private val fileWriter: FileWriter,
+  private val buildFilesLocation: BuildFilesLocation
 ) : Callable<Int> {
 
   @Mixin
@@ -31,7 +35,15 @@ internal class ListBuildFilesCommand(
     }
     logger.info("Listing all build.gradle files in ${common.repository}")
     val buildFiles = findProjectFiles.getAll(common.repository!!)
-    buildFiles.forEach { logger.info(it.toString()) }
+    val out = buildFilesLocation.get()
+
+    if (out == null) {
+      logger.error("Something went wrong while trying to create a list of build files. " +
+        "Please delete ~HOME/gradle-ast-parser directory and try again.")
+      return 1
+    }
+    val stringify = buildFiles.joinToString(separator = "\n") { it.toString() }
+    fileWriter.write(stringify, out)
     return 0
   }
 }
