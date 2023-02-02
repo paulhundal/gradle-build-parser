@@ -4,13 +4,13 @@ import org.slf4j.Logger
 import java.nio.file.Path
 import kotlin.io.path.writeText
 
-interface FileWriter {
-  fun write(out: String, to: Path): Boolean
+interface FileWriter<OUTPUT> {
+  fun write(out: OUTPUT, to: Path): Boolean
 }
 
-internal class DefaultFileWriter(
+internal class StringFileWriter(
   private val logger: Logger
-) : FileWriter {
+) : FileWriter<String> {
   override fun write(out: String, to: Path): Boolean {
     logger.info("Writing to $to")
     return runCatching {
