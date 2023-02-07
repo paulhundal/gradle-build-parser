@@ -1,6 +1,8 @@
 package commands
 
+import catalog.Project
 import converter.IgnoreListConverter
+import converter.ProjectConverter
 import converter.RepositoryConverter
 import location.GradleBuildParser.Companion.gradleAstParser
 import location.UserHome
@@ -13,48 +15,45 @@ import utils.StringFileWriter
 import utils.exists
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.Callable
 import kotlin.io.path.createDirectories
 
 @Command(
-  name = "build-files",
+  name = "setup",
   version = ["1.0"],
-  description = ["Save all build.gradle files in project."],
+  description = ["Setup project configuration for ast-parsing."],
   subcommands = [
     HelpCommand::class
   ]
 )
-internal class SaveBuildFilesCommand(
+internal class SetupCommand(
   private val logger: Logger,
   private val findProjectFiles: FindProjectFiles,
   private val fileWriter: StringFileWriter,
-  private val userHome: UserHome
+  private val userHome: UserHome,
+  private val repositoryConverter: RepositoryConverter,
+  private val ignoreListConverter: IgnoreListConverter
 ) : Callable<Int> {
 
   @Option(
-    names = ["--repository-path"],
-    required = true,
-    converter = [RepositoryConverter::class],
+    names = ["-p", "--project"],
+    defaultValue = "ast-parser",
+    converter = [ProjectConverter::class],
     description = [
-      "Define for which repository to parse AST data."
+      "See project-catalog.txt for valid values. Defaults to '\${DEFAULT-VALUE' if not specified."
     ]
   )
-  lateinit var repository: Path
-
-  @Option(
-    names = ["--ignore-list"],
-    converter = [IgnoreListConverter::class],
-    defaultValue = "",
-    description = [
-      "Define which build.gradle files to ignore. Takes in a .txt file of a list of all paths."
-    ]
-  )
-  lateinit var ignoredList: Set<Path>
+  lateinit var project: Project
 
   override fun call(): Int {
-    logger.info("Saving build.gradle file paths found in $repository")
-    ignoredList.forEach { logger.info("Ignoring $it") }
-    val buildFiles = findProjectFiles.getAll(repository, ignoredList)
+    userHome.currentProject = project
+
+    val projectPath = repositoryConverter.convert(project.path) ?: Paths.get(project.path)
+    val ignoreBuilds = ignoreListConverter.convert(project.ignoreBuildsPathAsString)
+
+    logger.info("Saving build.gradle file paths for project ${project.name}")
+    val buildFiles = findProjectFiles.getAll(projectPath, ignoreBuilds)
 
     val gradleAstParser = userHome.gradleAstParser()
 
@@ -62,7 +61,7 @@ internal class SaveBuildFilesCommand(
     if(!gradleAstParser.exists()) {
       gradleAstParser.createDirectories()
     }
-    val root = gradleAstParser.resolve(repository.fileName.toString())
+    val root = gradleAstParser.resolve(project.name)
     if (!root.exists()) {
       root.createDirectories()
     }

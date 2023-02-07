@@ -12,19 +12,30 @@ internal interface AstGraph {
 }
 
 internal class DefaultAstGraph(
-  private val logger: Logger
+  private val logger: Logger,
+  private val astBuilder: AstBuilder
 ) : AstGraph {
   private val astMap: TreeMap<Path, List<ASTNode>> = TreeMap()
   override fun walk(buildFiles: Set<Path>): Map<Path, List<ASTNode>> {
     buildFiles.forEach { file ->
+      logger.info(file.toString())
       try {
-        val nodes = AstBuilder().buildFromString(file.readText())
+        val nodes = astBuilder.buildFromString(file)
         astMap[file] = nodes
       } catch (ex: Exception) {
         logger.error("Could not parse AST nodes from $file")
       }
     }
     return astMap.toMap()
+  }
+
+  private fun AstBuilder.buildFromString(buildFile: Path): List<ASTNode> {
+    return try {
+      buildFromString(buildFile.readText())
+    } catch (ex: Exception) {
+      logger.warn("Unable to parse AST of build file $buildFile, skipping")
+      emptyList()
+    }
   }
 }
 

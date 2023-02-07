@@ -2,10 +2,16 @@ package di
 
 import ast.AstGraph
 import ast.DefaultAstGraph
-import commands.SaveBuildFilesCommand
+import catalog.CatalogLocator
+import commands.BuildAstCommand
+import commands.SetupCommand
+import converter.AllowlistConverter
+import converter.IgnoreListConverter
+import converter.ProjectConverter
+import converter.RepositoryConverter
 import di.GenericKoinModule.Companion.genericKoinApplication
 import location.GlobalScope
-import location.GradleBuildParser.Companion.gradleAstParser
+import org.codehaus.groovy.ast.builder.AstBuilder
 import org.koin.dsl.module
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -14,6 +20,7 @@ import picocli.CommandLine.IFactory
 import utils.DefaultDistributionProvider
 import utils.StringFileWriter
 import utils.DefaultFindProjectFiles
+import utils.Distribution
 import utils.DistributionProvider
 import utils.FindProjectFiles
 import utils.RealDistribution
@@ -21,11 +28,21 @@ import utils.StringPathFileReader
 import java.nio.file.FileSystems
 
 internal class PicoFactory(
-  private val globalScope: GlobalScope
+  private val globalScope: GlobalScope,
+  private val distribution: Distribution,
+  private val catalogLocator: CatalogLocator
 ) : IFactory {
 
   private val commands = module {
-    single { SaveBuildFilesCommand(get(), get(), get(), get()) }
+    single { SetupCommand(get(), get(), get(), get(), get(), get()) }
+    single { BuildAstCommand(get(), get(), get(), get()) }
+  }
+
+  private val catalogs = module {
+    single { ProjectConverter(catalogLocator.findProject()) }
+    single { AllowlistConverter() }
+    single { RepositoryConverter() }
+    single { IgnoreListConverter() }
   }
 
   private val locations = module {
@@ -34,7 +51,7 @@ internal class PicoFactory(
   }
 
   private val utils = module {
-    single<AstGraph> { DefaultAstGraph(get()) }
+    single<AstGraph> { DefaultAstGraph(get(), AstBuilder()) }
     single<DistributionProvider> { DefaultDistributionProvider(get()) }
     single<FindProjectFiles> { DefaultFindProjectFiles() }
     single<Logger> { LoggerFactory.getLogger("AstParser") }
@@ -47,6 +64,7 @@ internal class PicoFactory(
   private val koin by lazy {
     genericKoinApplication {
       modules(
+        catalogs,
         commands,
         utils,
         locations
