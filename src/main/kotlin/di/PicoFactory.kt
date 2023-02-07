@@ -2,35 +2,44 @@ package di
 
 import ast.AstGraph
 import ast.DefaultAstGraph
-import commands.BuildAstCommand
-import commands.ListBuildFilesCommand
+import commands.SaveBuildFilesCommand
 import di.GenericKoinModule.Companion.genericKoinApplication
+import location.GlobalScope
+import location.GradleBuildParser.Companion.gradleAstParser
 import org.koin.dsl.module
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import picocli.CommandLine
 import picocli.CommandLine.IFactory
-import utils.Location
-import utils.DefaultLocation
+import utils.DefaultDistributionProvider
 import utils.StringFileWriter
 import utils.DefaultFindProjectFiles
+import utils.DistributionProvider
 import utils.FindProjectFiles
+import utils.RealDistribution
 import utils.StringPathFileReader
+import java.nio.file.FileSystems
 
-internal class PicoFactory : IFactory {
+internal class PicoFactory(
+  private val globalScope: GlobalScope
+) : IFactory {
 
   private val commands = module {
-    single { BuildAstCommand(get(), get(), get(), get()) }
-    single { ListBuildFilesCommand(get(), get(), get(), get()) }
+    single { SaveBuildFilesCommand(get(), get(), get(), get()) }
+  }
+
+  private val locations = module {
+    single { globalScope }
+    single { globalScope.userHome }
   }
 
   private val utils = module {
     single<AstGraph> { DefaultAstGraph(get()) }
+    single<DistributionProvider> { DefaultDistributionProvider(get()) }
     single<FindProjectFiles> { DefaultFindProjectFiles() }
-    single<Location> { DefaultLocation() }
     single<Logger> { LoggerFactory.getLogger("AstParser") }
 
-    // multi-binding with generics broken?
+    single { RealDistribution.of(FileSystems.getDefault()) }
     single { StringPathFileReader() }
     single { StringFileWriter(get()) }
   }
@@ -39,7 +48,8 @@ internal class PicoFactory : IFactory {
     genericKoinApplication {
       modules(
         commands,
-        utils
+        utils,
+        locations
       )
     }
   }

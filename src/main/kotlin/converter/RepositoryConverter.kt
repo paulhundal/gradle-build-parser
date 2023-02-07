@@ -1,4 +1,4 @@
-package options
+package converter
 
 import picocli.CommandLine.ITypeConverter
 import java.nio.file.Path

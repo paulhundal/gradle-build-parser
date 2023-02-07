@@ -1,0 +1,7 @@
+android
+application
+compileKotlin
+compileTestKotlin
+dependencies
+plugins
+test
