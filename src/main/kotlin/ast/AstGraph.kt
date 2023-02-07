@@ -18,7 +18,6 @@ internal class DefaultAstGraph(
   private val astMap: TreeMap<Path, List<ASTNode>> = TreeMap()
   override fun walk(buildFiles: Set<Path>): Map<Path, List<ASTNode>> {
     buildFiles.forEach { file ->
-      logger.info(file.toString())
       try {
         val nodes = astBuilder.buildFromString(file)
         astMap[file] = nodes

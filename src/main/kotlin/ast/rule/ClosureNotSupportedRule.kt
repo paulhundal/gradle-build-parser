@@ -3,12 +3,14 @@ package ast.rule
 import ast.violation.ClosureViolation
 import ast.violation.Violation
 import ast.visitor.Visitor
+import org.slf4j.Logger
 import java.lang.StringBuilder
 import java.nio.file.Path
 import java.util.TreeSet
 
 internal class ClosureNotSupportedRule(
-  private val allowList: Set<String>
+  private val allowList: Set<String>,
+  private val logger: Logger
 ) : ClosureRule {
   override fun enforce(buildFile: Path, visitor: Visitor): Set<Violation> {
     val broken: TreeSet<Violation> = TreeSet()

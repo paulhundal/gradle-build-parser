@@ -3,14 +3,14 @@
     "ast-parser": {
       "name": "ast-parser",
       "path": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser",
-      "allowlistClosuresPathAsString": "allowlist-closures.txt",
-      "ignoreBuildsPathAsString": "ignore-builds.txt"
+      "allowlistClosuresPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/allowlist-closures.txt",
+      "ignoreBuildsPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/ignore-builds.txt"
     },
     "register": {
       "name": "android-register",
       "path": "/Users/phundal/Development/android-register",
-      "allowlistClosuresPathAsString": "allowlist-closures.txt",
-      "ignoreBuildsPathAsString": "ignore-builds.txt"
+      "allowlistClosuresPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/allowlist-closures.txt",
+      "ignoreBuildsPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/ignore-builds.txt"
     }
   }
 }

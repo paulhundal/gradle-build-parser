@@ -10,11 +10,10 @@ import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
 import picocli.CommandLine.Option
+import utils.Files
 import utils.FindProjectFiles
 import utils.StringFileWriter
 import utils.exists
-import java.io.File
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.Callable
 import kotlin.io.path.createDirectories
@@ -33,7 +32,8 @@ internal class SetupCommand(
   private val fileWriter: StringFileWriter,
   private val userHome: UserHome,
   private val repositoryConverter: RepositoryConverter,
-  private val ignoreListConverter: IgnoreListConverter
+  private val ignoreListConverter: IgnoreListConverter,
+  private val files: Files
 ) : Callable<Int> {
 
   @Option(
@@ -70,23 +70,11 @@ internal class SetupCommand(
     // files are being evaluated.
     if (buildFiles.isNotEmpty()) {
       val stringify = buildFiles.joinToString(separator = "\n") { it.toString() }
-      val out = createOrOverwriteFile(root.resolve("build-files-list.txt").toString())
+      val out = files.createOrOverwriteFile(root.resolve("build-files-list.txt").toString())
       if (out != null) {
         fileWriter.write(stringify, out)
       }
     }
     return 0
-  }
-
-  private fun createOrOverwriteFile(fileName: String): Path? {
-    return try {
-      val file = File(fileName)
-      if (file.exists()) file.delete()
-      file.createNewFile()
-      return file.toPath()
-    } catch (ex: Exception) {
-      logger.error("Could not create $fileName", ex)
-      null
-    }
   }
 }

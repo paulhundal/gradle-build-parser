@@ -1,3 +1,4 @@
+# List of all closures you allow
 android
 compileKotlin
 compileTestKotlin

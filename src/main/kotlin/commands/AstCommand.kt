@@ -10,7 +10,7 @@ import picocli.CommandLine.HelpCommand
   description = ["AST Parsing Assistant"],
   subcommands = [
     HelpCommand::class,
-    BuildAstCommand::class,
+    ViolationsCommand::class,
     SetupCommand::class
   ]
 )

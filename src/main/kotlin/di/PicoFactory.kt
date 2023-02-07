@@ -3,7 +3,7 @@ package di
 import ast.AstGraph
 import ast.DefaultAstGraph
 import catalog.CatalogLocator
-import commands.BuildAstCommand
+import commands.ViolationsCommand
 import commands.SetupCommand
 import converter.AllowlistConverter
 import converter.IgnoreListConverter
@@ -22,7 +22,9 @@ import utils.StringFileWriter
 import utils.DefaultFindProjectFiles
 import utils.Distribution
 import utils.DistributionProvider
+import utils.Files
 import utils.FindProjectFiles
+import utils.HelpFiles
 import utils.RealDistribution
 import utils.StringPathFileReader
 import java.nio.file.FileSystems
@@ -34,13 +36,13 @@ internal class PicoFactory(
 ) : IFactory {
 
   private val commands = module {
-    single { SetupCommand(get(), get(), get(), get(), get(), get()) }
-    single { BuildAstCommand(get(), get(), get(), get()) }
+    single { SetupCommand(get(), get(), get(), get(), get(), get(), get()) }
+    single { ViolationsCommand(get(), get(), get(), get(), get(), get()) }
   }
 
   private val catalogs = module {
     single { ProjectConverter(catalogLocator.findProject()) }
-    single { AllowlistConverter() }
+    single { AllowlistConverter(get(), get()) }
     single { RepositoryConverter() }
     single { IgnoreListConverter() }
   }
@@ -55,6 +57,7 @@ internal class PicoFactory(
     single<DistributionProvider> { DefaultDistributionProvider(get()) }
     single<FindProjectFiles> { DefaultFindProjectFiles() }
     single<Logger> { LoggerFactory.getLogger("AstParser") }
+    single<Files> { HelpFiles(get()) }
 
     single { RealDistribution.of(FileSystems.getDefault()) }
     single { StringPathFileReader() }
