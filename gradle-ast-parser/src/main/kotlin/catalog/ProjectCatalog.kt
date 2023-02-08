@@ -26,5 +26,6 @@ data class Project(
   val name: String,
   val path: String,
   val allowlistClosuresPathAsString: String,
+  val disallowedDependenciesPathAsString: String,
   val ignoreBuildsPathAsString: String
 )

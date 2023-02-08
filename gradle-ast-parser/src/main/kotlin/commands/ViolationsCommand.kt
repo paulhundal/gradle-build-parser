@@ -6,6 +6,7 @@ import ast.visitor.Visitor
 import ast.visitor.VisitorFactory
 import catalog.Project
 import converter.AllowlistConverter
+import converter.DisallowedDependenciesConverter
 import location.GradleBuildParser.Companion.gradleAstParser
 import location.UserHome
 import org.codehaus.groovy.ast.ASTNode
@@ -34,6 +35,7 @@ internal class ViolationsCommand(
   private val stringSetReader: StringPathFileReader,
   private val userHome: UserHome,
   private val allowlistConverter: AllowlistConverter,
+  private val disallowedDependenciesConverter: DisallowedDependenciesConverter,
   private val files: Files
 ) : Callable<Int> {
 
@@ -42,14 +44,19 @@ internal class ViolationsCommand(
 
   override fun call(): Int {
     return runCatching {
+      // Get current project and convert the Strings to the correct paths
       val currentProject = getProject()
       val allowlist = allowlistConverter.convert(currentProject.allowlistClosuresPathAsString)
+      val disallowedDeps = disallowedDependenciesConverter.convert(currentProject.disallowedDependenciesPathAsString)
 
+      // Setup visitors that will visit each node of the AST
       visitors = VisitorFactory(
         allowlist,
+        disallowedDeps,
         logger
       ).create()
 
+      // Get all build files for this project.
       val buildFilesPath = userHome.gradleAstParser().resolve(currentProject.name)
         .resolve("build-files-list.txt")
 
@@ -60,6 +67,8 @@ internal class ViolationsCommand(
         return 1
       }
 
+      // Walk the AST graph and visit each build files List<ASTNode>
+      // Gather violations as they occur.
       val astGraph = astGraph.walk(stringSetReader.read(buildFilesPath))
       astGraph.entries.forEach { entry ->
         val buildFile = entry.key
@@ -73,6 +82,12 @@ internal class ViolationsCommand(
           }
         }
       }
+      // Don't need to write out to file if no errors found
+      if (violations.size == 0) {
+        logger.info("No build files violated any rules!")
+        return 0
+      }
+
       val violationOutput = writeViolations(project = currentProject, violations.toSet())
 
       logger.info("There were ${violations.size} violations found for project ${currentProject.name}. " +

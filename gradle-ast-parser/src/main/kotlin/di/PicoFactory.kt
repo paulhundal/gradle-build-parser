@@ -6,6 +6,7 @@ import catalog.CatalogLocator
 import commands.ViolationsCommand
 import commands.SetupCommand
 import converter.AllowlistConverter
+import converter.DisallowedDependenciesConverter
 import converter.IgnoreListConverter
 import converter.ProjectConverter
 import converter.RepositoryConverter
@@ -37,11 +38,12 @@ internal class PicoFactory(
 
   private val commands = module {
     single { SetupCommand(get(), get(), get(), get(), get(), get(), get()) }
-    single { ViolationsCommand(get(), get(), get(), get(), get(), get()) }
+    single { ViolationsCommand(get(), get(), get(), get(), get(), get(), get()) }
   }
 
   private val catalogs = module {
     single { ProjectConverter(catalogLocator.findProject()) }
+    single { DisallowedDependenciesConverter(get()) }
     single { AllowlistConverter(get(), get()) }
     single { RepositoryConverter() }
     single { IgnoreListConverter() }

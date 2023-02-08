@@ -1,10 +1,12 @@
 package ast.visitor
 
 import ast.rule.ClosureNotSupportedRule
+import ast.rule.UnsupportedDependencyRule
 import org.slf4j.Logger
 
 internal class VisitorFactory(
   private val allowList: Set<String>,
+  private val disallowedDependenciesList: Set<String>,
   private val logger: Logger
 ) {
   fun create(): List<Visitor> {
@@ -16,6 +18,10 @@ internal class VisitorFactory(
       closureRules = listOf(ClosureNotSupportedRule(allowList, logger))
     )
 
-    return listOf(closureVisitors)
+    val dependencyVisitors = DependenciesVisitor(
+      dependencyRules = listOf(UnsupportedDependencyRule(disallowedDependenciesList, logger))
+    )
+
+    return listOf(dependencyVisitors)
   }
 }
