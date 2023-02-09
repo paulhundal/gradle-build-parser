@@ -60,6 +60,6 @@ internal class UnsupportedDependencyRule(
   }
 
   companion object {
-    val defaultUndesiredDeps = listOf("slf4j")
+    val defaultUndesiredDeps = listOf("")
   }
 }

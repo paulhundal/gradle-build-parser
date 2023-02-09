@@ -16,19 +16,29 @@ package commands
  * limitations under the License.
  */
 
+import location.GlobalScope
+import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
+import java.util.concurrent.Callable
 
 @Command(
-  name = "ast-parser",
-  mixinStandardHelpOptions = true,
-  version = ["1.0"],
-  description = ["AST Parsing Assistant"],
+  name = "scan",
+  description = ["Scan the current project configuration and display to user."],
   subcommands = [
-    HelpCommand::class,
-    ViolationsCommand::class,
-    SetupCommand::class,
-    ScanCommand::class
+    HelpCommand::class
   ]
 )
-class AstCommand
+internal class ScanCommand(
+  private val globalScope: GlobalScope,
+  private val logger: Logger
+) : Callable<Int> {
+
+  override fun call(): Int {
+    logger.info("Displaying project configuration below: \n")
+    val project = globalScope.userHome.currentProject
+    logger.info("Current project: ${project.name}")
+    logger.info("Current project location: ${globalScope.userHome.directory}/${project.path}")
+    return 0
+  }
+}

@@ -5,6 +5,7 @@ import ast.DefaultAstGraph
 import ast.visitor.DefaultVisitorManager
 import ast.visitor.VisitorManager
 import catalog.CatalogLocator
+import commands.ScanCommand
 import commands.ViolationsCommand
 import commands.SetupCommand
 import converter.AllowlistConverter
@@ -43,6 +44,7 @@ internal class PicoFactory(
   private val commands = module {
     single { SetupCommand(get(), get(), get(), get(), get(), get()) }
     single { ViolationsCommand(get(), get(), get(), get(), get(), get(), get()) }
+    single { ScanCommand(globalScope, get()) }
   }
 
   private val catalogs = module {

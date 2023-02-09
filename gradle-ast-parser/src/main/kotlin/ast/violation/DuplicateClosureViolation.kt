@@ -1,4 +1,4 @@
-package commands
+package ast.violation
 
 /**
  * Copyright 2022 Square Inc.
@@ -16,19 +16,7 @@ package commands
  * limitations under the License.
  */
 
-import picocli.CommandLine.Command
-import picocli.CommandLine.HelpCommand
+import java.nio.file.Path
 
-@Command(
-  name = "ast-parser",
-  mixinStandardHelpOptions = true,
-  version = ["1.0"],
-  description = ["AST Parsing Assistant"],
-  subcommands = [
-    HelpCommand::class,
-    ViolationsCommand::class,
-    SetupCommand::class,
-    ScanCommand::class
-  ]
-)
-class AstCommand
+data class DuplicateClosureViolation(override val message: String, override val buildFile: Path) :
+  Violation

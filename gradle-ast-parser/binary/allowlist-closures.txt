@@ -1,6 +1,8 @@
 android
-compileKotlin
-compileTestKotlin
+Database
 dependencies
+forbiddenDependencies
 plugins
-test
+protosPlugin
+square
+sqldelight

@@ -34,6 +34,7 @@ import utils.ALLOWLIST_CLOSURES
 import utils.BUILD_FILES
 import utils.DISALLOWED_DEPENDENCIES
 import utils.Files
+import utils.IGNORE_BUILDS
 import utils.StringPathFileReader
 import utils.VIOLATIONS
 import utils.exists
@@ -69,7 +70,8 @@ internal class ViolationsCommand(
       // Get current project and convert the Strings to the correct paths
       val currentProject = getProject()
       val allowlist = globalScope.binary().resolve(ALLOWLIST_CLOSURES).readLines().toSet()
-      val disallowedDeps = globalScope.binary().resolve(DISALLOWED_DEPENDENCIES).readLines().toSet()
+      val ignoreList = globalScope.binary().resolve(IGNORE_BUILDS).readLines().toSet()
+      // val disallowedDeps = globalScope.binary().resolve(DISALLOWED_DEPENDENCIES).readLines().toSet()
 
       // Setup visitors that will visit each node of the AST
       visitors = VisitorFactory(
@@ -93,20 +95,30 @@ internal class ViolationsCommand(
         return 1
       }
 
+      val buildFilesToRead = stringSetReader.read(buildFilesPath)
+        .filterNot { path -> ignoreList.any { path == globalScope.userHome.resolve(it) } }
+        .filter { it.exists() }.toSet()
+
       // Walk the AST graph and visit each build files List<ASTNode>
       // Gather violations as they occur.
-      val astGraph = astGraph.walk(stringSetReader.read(buildFilesPath))
+      val astGraph = astGraph.walk(buildFilesToRead)
       astGraph.entries.forEach { entry ->
         val buildFile = entry.key
         val nodes: List<ASTNode> = entry.value
-        nodes.forEach { node ->
-          visitors.forEach { visitor ->
+        visitors.forEach { visitor ->
+          nodes.forEach { node ->
             node.visit(visitor)
-            visitor.rules.forEach { rule ->
-              violations.addAll(rule.enforce(buildFile, visitor))
-            }
+          }
+          visitor.clear()
+        }
+
+        visitors.forEach { visitor ->
+          visitor.rules.forEach { rule ->
+            violations.addAll(rule.enforce(buildFile, visitor))
           }
         }
+
+        visitorManager.clear()
       }
       // Don't need to write out to file if no errors found
       if (violations.size == 0) {
@@ -114,13 +126,12 @@ internal class ViolationsCommand(
         return 0
       }
 
-      // val violationOutput = writeViolations(project = currentProject, violations.toSet())
+      val violationOutput = writeViolations(project = currentProject, violations.toSet())
 
-      // logger.info(
-      //   "There were ${violations.size} violations found for project ${currentProject.name}. " +
-      //     "To see a detailed list of all violations open $violationOutput"
-      // )
-      violations.forEach { logger.info(it.message) }
+      logger.info(
+        "There were ${violations.size} violations found for project ${currentProject.name}. " +
+          "To see a detailed list of all violations open $violationOutput"
+      )
     }.fold(
       onSuccess = { 0 },
       onFailure = { 1 }
@@ -131,9 +142,7 @@ internal class ViolationsCommand(
     val root = globalScope.userHome.gradleAstParser().resolve(project.name)
     val out = files.createOrOverwriteFile(root.resolve(VIOLATIONS).toString())!!
     val violationString = violations.joinToString(separator = "\n") { it.message }
-    File(out.toString()).printWriter().use { out ->
-      out.print(violationString)
-    }
+    File(out.toString()).printWriter().use { o -> o.print(violationString) }
     return out
   }
 

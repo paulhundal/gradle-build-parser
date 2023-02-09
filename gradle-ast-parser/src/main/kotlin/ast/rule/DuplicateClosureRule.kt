@@ -16,35 +16,31 @@ package ast.rule
  * limitations under the License.
  */
 
-import ast.violation.ClosureViolation
+import ast.violation.DuplicateClosureViolation
 import ast.violation.Violation
 import ast.visitor.Visitor
 import ast.visitor.VisitorManager
-import org.slf4j.Logger
-import java.lang.StringBuilder
 import java.nio.file.Path
 import java.util.TreeSet
 
-internal class ClosureNotSupportedRule(
-  private val allowList: Set<String>,
-  private val logger: Logger,
-  private val visitorManager: VisitorManager
+internal class DuplicateClosureRule(
+  private val visitorManager: VisitorManager,
+  private val allowlistClosure: Set<String>
 ) : ClosureRule {
+
   override fun enforce(buildFile: Path, visitor: Visitor): Set<Violation> {
     val broken = TreeSet<Violation>()
     val nodes = visitorManager.getVisitedNodes()[visitor.javaClass] ?: return emptySet()
 
     nodes.forEach { (node, positions) ->
-      if (allowList.none { node.contains(it) }) {
-        positions.forEach { position ->
-          broken.add(
-            ClosureViolation(
-              "The closure '$node' at line $position in $buildFile is not supported. " +
-                "Please consider using one of the following closures: ${allowList.joinToString(", ")}",
-              buildFile
-            )
+      if (positions.size > 1 && allowlistClosure.contains(node)) {
+        broken.add(
+          DuplicateClosureViolation(
+            message = "The closure '$node' is duplicated ${positions.size} times in $buildFile. " +
+              "Consider deleting all duplicative $node closures.",
+            buildFile = buildFile
           )
-        }
+        )
       }
     }
     return broken.toSortedSet()
