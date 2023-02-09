@@ -17,6 +17,7 @@ package commands
  */
 
 import location.GlobalScope
+import location.GradleBuildParser.Companion.gradleAstParser
 import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
@@ -39,6 +40,11 @@ internal class ScanCommand(
     val project = globalScope.userHome.currentProject
     logger.info("Current project: ${project.name}")
     logger.info("Current project location: ${globalScope.userHome.directory}/${project.path}")
+    logger.info(
+      "Current project violations location: ${
+        globalScope.userHome.gradleAstParser().resolve(project.path)
+      }"
+    )
     return 0
   }
 }

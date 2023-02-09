@@ -16,33 +16,19 @@ package commands
  * limitations under the License.
  */
 
-import ast.AstGraph
-import ast.violation.Violation
+import ast.violation.IncludedViolation
+import ast.violation.IncludedViolation.DuplicateClosures
+import ast.violation.IncludedViolation.UnsupportedClosures
 import ast.visitor.Visitor
 import ast.visitor.VisitorFactory
-import ast.visitor.VisitorManager
-import catalog.Project
-import converter.UndesiredDependencyConverter
-import location.Binary.Companion.binary
 import location.GlobalScope
-import location.GradleBuildParser.Companion.gradleAstParser
-import org.codehaus.groovy.ast.ASTNode
 import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
-import utils.ALLOWLIST_CLOSURES
-import utils.BUILD_FILES
-import utils.DISALLOWED_DEPENDENCIES
-import utils.Files
-import utils.IGNORE_BUILDS
-import utils.StringPathFileReader
-import utils.VIOLATIONS
-import utils.exists
-import java.io.File
-import java.nio.file.Path
-import java.util.TreeSet
+import picocli.CommandLine.Parameters
+import utils.Configuration
+import utils.Status.VALID
 import java.util.concurrent.Callable
-import kotlin.io.path.readLines
 
 @Command(
   name = "violations",
@@ -54,97 +40,35 @@ import kotlin.io.path.readLines
 )
 internal class ViolationsCommand(
   private val logger: Logger,
-  private val astGraph: AstGraph,
-  private val stringSetReader: StringPathFileReader,
   private val globalScope: GlobalScope,
-  private val files: Files,
-  private val visitorManager: VisitorManager,
-  private val undesiredDependencyConverter: UndesiredDependencyConverter
+  private val visitorFactory: VisitorFactory,
+  private val violationsConfiguration: Configuration<List<Visitor>, GlobalScope>
 ) : Callable<Int> {
 
-  private lateinit var visitors: List<Visitor>
-  private val violations: TreeSet<Violation> = TreeSet()
+  @Parameters(
+    paramLabel = "VIOLATION",
+    description = ["one or more violations to find."]
+  )
+  var includeViolations: Array<IncludedViolation> = emptyArray()
 
   override fun call(): Int {
-    return runCatching {
-      // Get current project and convert the Strings to the correct paths
-      val currentProject = getProject()
-      val allowlist = globalScope.binary().resolve(ALLOWLIST_CLOSURES).readLines().toSet()
-      val ignoreList = globalScope.binary().resolve(IGNORE_BUILDS).readLines().toSet()
-      // val disallowedDeps = globalScope.binary().resolve(DISALLOWED_DEPENDENCIES).readLines().toSet()
-
-      // Setup visitors that will visit each node of the AST
-      visitors = VisitorFactory(
-        allowlist,
-        undesiredDependencyConverter,
-        logger,
-        visitorManager
-      ).create()
-
-      // Get all build files for this project.
-      val buildFilesPath = globalScope.userHome.gradleAstParser().resolve(currentProject.name)
-        .resolve(BUILD_FILES)
-
-      if (!buildFilesPath.exists()) {
-        logger.error(
-          "You have not saved any build files to run ast parsing on. You can start " +
-            "by running ./gradlew setup -p=<project-name>. You can find the list of projects " +
-            "we have cataloged in project-catalog.json. If you're project is not on the list " +
-            "please add the name and project path there."
-        )
-        return 1
-      }
-
-      val buildFilesToRead = stringSetReader.read(buildFilesPath)
-        .filterNot { path -> ignoreList.any { path == globalScope.userHome.resolve(it) } }
-        .filter { it.exists() }.toSet()
-
-      // Walk the AST graph and visit each build files List<ASTNode>
-      // Gather violations as they occur.
-      val astGraph = astGraph.walk(buildFilesToRead)
-      astGraph.entries.forEach { entry ->
-        val buildFile = entry.key
-        val nodes: List<ASTNode> = entry.value
-        visitors.forEach { visitor ->
-          nodes.forEach { node ->
-            node.visit(visitor)
-          }
-          visitor.clear()
-        }
-
-        visitors.forEach { visitor ->
-          visitor.rules.forEach { rule ->
-            violations.addAll(rule.enforce(buildFile, visitor))
-          }
-        }
-
-        visitorManager.clear()
-      }
-      // Don't need to write out to file if no errors found
-      if (violations.size == 0) {
-        logger.info("No build files violated any rules!")
-        return 0
-      }
-
-      val violationOutput = writeViolations(project = currentProject, violations.toSet())
-
+    if (includeViolations.isEmpty()) {
       logger.info(
-        "There were ${violations.size} violations found for project ${currentProject.name}. " +
-          "To see a detailed list of all violations open $violationOutput"
+        "By not passing any parameters for VIOLATION this program will check " +
+          "all violations that are supported. If this wasn't the intention please see the" +
+          "complete list of violation checks by running 'violations --help'"
       )
-    }.fold(
-      onSuccess = { 0 },
-      onFailure = { 1 }
-    )
-  }
+      includeViolations.toMutableList().apply {
+        add(UnsupportedClosures)
+        add(DuplicateClosures)
+      }
+    }
+    // Setup visitors that will visit each node of the AST
+    val visitors = visitorFactory.create(includeViolations.toList())
+    if (violationsConfiguration.applyFor(visitors, globalScope) == VALID) {
+      return 0
+    }
 
-  private fun writeViolations(project: Project, violations: Set<Violation>): Path {
-    val root = globalScope.userHome.gradleAstParser().resolve(project.name)
-    val out = files.createOrOverwriteFile(root.resolve(VIOLATIONS).toString())!!
-    val violationString = violations.joinToString(separator = "\n") { it.message }
-    File(out.toString()).printWriter().use { o -> o.print(violationString) }
-    return out
+    return 1
   }
-
-  private fun getProject(): Project = globalScope.userHome.currentProject
 }

@@ -18,23 +18,14 @@ package commands
 
 import catalog.Project
 import converter.ProjectConverter
-import converter.RepositoryConverter
-import location.Binary.Companion.binary
 import location.GlobalScope
-import location.GradleBuildParser.Companion.gradleAstParser
 import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
 import picocli.CommandLine.Option
-import utils.BUILD_FILES
-import utils.Files
-import utils.FindProjectFiles
-import utils.IGNORE_BUILDS
-import utils.StringFileWriter
-import utils.exists
+import utils.Configuration
+import utils.Status.VALID
 import java.util.concurrent.Callable
-import kotlin.io.path.createDirectories
-import kotlin.io.path.readLines
 
 @Command(
   name = "setup",
@@ -46,11 +37,8 @@ import kotlin.io.path.readLines
 )
 internal class SetupCommand(
   private val logger: Logger,
-  private val findProjectFiles: FindProjectFiles,
-  private val fileWriter: StringFileWriter,
   private val globalScope: GlobalScope,
-  private val repositoryConverter: RepositoryConverter,
-  private val files: Files
+  private val setupConfiguration: Configuration<Project, GlobalScope>
 ) : Callable<Int> {
 
   @Option(
@@ -64,38 +52,11 @@ internal class SetupCommand(
   lateinit var project: Project
 
   override fun call(): Int {
+    logger.info("Setting up project configuration")
     globalScope.userHome.currentProject = project
-
-    val ignoreBuilds = globalScope.binary().resolve(IGNORE_BUILDS).readLines().map {
-      globalScope.fileSystem.getPath(it)
-    }.toSet()
-
-    val projectPath = repositoryConverter.convert(project.path)
-      ?: globalScope.fileSystem.getPath(project.path)
-
-    logger.info("Saving build.gradle file paths for project ${project.name}")
-    val buildFiles = findProjectFiles.getAll(projectPath, ignoreBuilds)
-
-    val gradleAstParser = globalScope.userHome.gradleAstParser()
-
-    // Create all necessary preliminary directories
-    if(!gradleAstParser.exists()) {
-      gradleAstParser.createDirectories()
+    if (setupConfiguration.applyFor(project, globalScope) == VALID) {
+      return 0
     }
-    val root = gradleAstParser.resolve(project.name)
-    if (!root.exists()) {
-      root.createDirectories()
-    }
-
-    // Save all build files in the root under the node of the repo for which the build
-    // files are being evaluated.
-    if (buildFiles.isNotEmpty()) {
-      val stringify = buildFiles.joinToString(separator = "\n") { it.toString() }
-      val out = files.createOrOverwriteFile(root.resolve(BUILD_FILES).toString())
-      if (out != null) {
-        fileWriter.write(stringify, out)
-      }
-    }
-    return 0
+    return 1
   }
 }

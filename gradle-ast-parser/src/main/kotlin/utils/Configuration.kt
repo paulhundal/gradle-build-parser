@@ -1,4 +1,4 @@
-package ast.violation
+package utils
 
 /**
  * Copyright 2022 Square Inc.
@@ -16,9 +16,14 @@ package ast.violation
  * limitations under the License.
  */
 
-import java.nio.file.Path
+import location.Location
 
-data class UnsupportedDependencyViolation(
-  override val message: String,
-  override val buildFile: Path
-) : Violation
+/**
+ * [Configuration] for a chosen [MODEL].
+ */
+internal fun interface Configuration<MODEL : Any, LOCATION : Location> {
+  fun applyFor(
+    chosen: MODEL,
+    to: LOCATION
+  ): Status
+}

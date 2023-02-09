@@ -1,8 +1,4 @@
-package converter
-
-import catalog.UndesiredDependency
-import catalog.UndesiredDependencyCatalog
-import picocli.CommandLine.ITypeConverter
+package utils
 
 /**
  * Copyright 2022 Square Inc.
@@ -20,11 +16,24 @@ import picocli.CommandLine.ITypeConverter
  * limitations under the License.
  */
 
-internal class UndesiredDependencyConverter(
-  private val undesiredDependencyCatalog: UndesiredDependencyCatalog
-) : ITypeConverter<UndesiredDependency> {
+/** [Status] of an operation */
+internal enum class Status {
+  VALID,
+  WARN,
+  ERROR;
 
-  override fun convert(value: String): UndesiredDependency {
-    return undesiredDependencyCatalog.find(value)
+  inline fun onError(doAction: () -> Unit) {
+    if (this == ERROR) {
+      doAction()
+    }
+  }
+
+  operator fun plus(other: Status?): Status {
+    return when {
+      other == null -> this
+      ordinal > other.ordinal -> this
+      ordinal < other.ordinal -> other
+      else -> this
+    }
   }
 }

@@ -22,9 +22,4 @@ import utils.UNDESIRED_DEPENDENCIES
 
 internal class CatalogLocator(private val distribution: Distribution) {
   fun findProject() = ProjectCatalog.of(distribution.findFile(PROJECT_CATALOG))
-  fun findUndesiredDependencies() = UndesiredDependencyCatalog.of(
-    distribution.findFile(
-      UNDESIRED_DEPENDENCIES
-    )
-  )
 }

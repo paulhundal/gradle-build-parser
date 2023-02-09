@@ -1,5 +1,6 @@
 package di
 
+import di.GenericKoinModule.Companion.GenericTypeQualifier
 import org.koin.core.KoinApplication
 import org.koin.core.definition.Kind.Factory
 import org.koin.core.definition.Kind.Scoped
@@ -50,7 +51,7 @@ import kotlin.reflect.KClass
  *
  * ```
  */
-internal class GenericKoinModule(@PublishedApi internal val module: Module) {
+class GenericKoinModule(@PublishedApi internal val module: Module) {
 
   /**
    * [bind] associates additional types with an instance definition.

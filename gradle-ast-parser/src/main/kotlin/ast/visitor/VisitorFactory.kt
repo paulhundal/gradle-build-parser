@@ -17,41 +17,39 @@ package ast.visitor
  */
 
 import ast.rule.ClosureNotSupportedRule
+import ast.rule.ClosureRule
 import ast.rule.DuplicateClosureRule
-import ast.rule.UnsupportedDependencyRule
-import converter.UndesiredDependencyConverter
+import ast.violation.IncludedViolation
+import ast.violation.IncludedViolation.DuplicateClosures
+import ast.violation.IncludedViolation.UnsupportedClosures
 import org.slf4j.Logger
 
 internal class VisitorFactory(
   private val allowList: Set<String>,
-  private val undesiredDependencyConverter: UndesiredDependencyConverter,
   private val logger: Logger,
   private val visitorManager: VisitorManager
 ) {
-  fun create(): List<Visitor> {
-    // Each visitor can enforce a list of rules. To append a rule to a visitor append it
-    // to the list here
+
+  fun create(includedViolation: List<IncludedViolation>): List<Visitor> {
+    val closureRules: MutableList<ClosureRule> = mutableListOf()
+    includedViolation.forEach { violation ->
+      when (violation) {
+        UnsupportedClosures -> {
+          closureRules.add(ClosureNotSupportedRule(allowList, logger, visitorManager))
+        }
+        DuplicateClosures -> {
+          closureRules.add(DuplicateClosureRule(visitorManager, allowList))
+        }
+      }
+    }
+
     val closureVisitors = ClosureVisitor(
       allowlistClosures = allowList,
       logger = logger,
-      closureRules = listOf(
-        ClosureNotSupportedRule(allowList, logger, visitorManager),
-        // DuplicateClosureRule(visitorManager, allowList)
-      ),
+      closureRules = closureRules.toList(),
       visitorManager = visitorManager
     )
 
-    val dependencyVisitors = DependenciesVisitor(
-      dependencyRules = listOf(
-        // UnsupportedDependencyRule(
-        //   logger,
-        //   visitorManager,
-        //   undesiredDependencyConverter
-        // )
-      ),
-      visitorManager = visitorManager
-    )
-
-    return listOf(closureVisitors, dependencyVisitors)
+    return listOf(closureVisitors)
   }
 }
