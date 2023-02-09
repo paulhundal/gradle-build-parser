@@ -1,4 +1,4 @@
-package converter
+package utils
 
 /**
  * Copyright 2022 Square Inc.
@@ -16,17 +16,10 @@ package converter
  * limitations under the License.
  */
 
-import location.UserHome
-import picocli.CommandLine.ITypeConverter
-import java.nio.file.Path
 
-internal class RepositoryConverter(
-  private val userHome: UserHome
-) : ITypeConverter<Path> {
-  override fun convert(value: String?): Path? {
-    if (value == null) return null
-
-    return runCatching { userHome.resolve(value) }
-      .fold(onSuccess = { it }, onFailure = { null })
-  }
-}
+const val IGNORE_BUILDS = "ignore-builds.txt" // Which build files to ignore in project
+const val ALLOWLIST_CLOSURES = "allowlist-closures.txt" // Closures that are allowed
+const val DISALLOWED_DEPENDENCIES = "disallowed-dependencies.txt" // Dependencies that are not allowed
+const val PROJECT_CATALOG = "project-catalog.json" // Project configuration
+const val BUILD_FILES = "build-files.txt" // Where list of build files are cached for each project
+const val VIOLATIONS = "violations.txt" // Where all violations are output to

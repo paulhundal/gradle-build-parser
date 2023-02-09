@@ -26,8 +26,10 @@ import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
 import picocli.CommandLine.Option
+import utils.BUILD_FILES
 import utils.Files
 import utils.FindProjectFiles
+import utils.IGNORE_BUILDS
 import utils.StringFileWriter
 import utils.exists
 import java.util.concurrent.Callable
@@ -64,7 +66,7 @@ internal class SetupCommand(
   override fun call(): Int {
     globalScope.userHome.currentProject = project
 
-    val ignoreBuilds = globalScope.binary().resolve("ignore-builds.txt").readLines().map {
+    val ignoreBuilds = globalScope.binary().resolve(IGNORE_BUILDS).readLines().map {
       globalScope.fileSystem.getPath(it)
     }.toSet()
 
@@ -89,7 +91,7 @@ internal class SetupCommand(
     // files are being evaluated.
     if (buildFiles.isNotEmpty()) {
       val stringify = buildFiles.joinToString(separator = "\n") { it.toString() }
-      val out = files.createOrOverwriteFile(root.resolve("build-files-list.txt").toString())
+      val out = files.createOrOverwriteFile(root.resolve(BUILD_FILES).toString())
       if (out != null) {
         fileWriter.write(stringify, out)
       }

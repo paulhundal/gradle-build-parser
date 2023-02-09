@@ -2,11 +2,11 @@
   "projects": {
     "ast-parser": {
       "name": "ast-parser",
-      "path": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser"
+      "path": "Development/gradle-build-parser/gradle-ast-parser"
     },
     "register": {
       "name": "android-register",
-      "path": "/Users/phundal/Development/android-register"
+      "path": "Development/android-register"
     }
   }
 }

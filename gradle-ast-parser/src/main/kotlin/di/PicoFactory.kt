@@ -48,7 +48,7 @@ internal class PicoFactory(
     single { ProjectConverter(catalogLocator.findProject()) }
     single { DisallowedDependenciesConverter(get()) }
     single { AllowlistConverter(get(), get()) }
-    single { RepositoryConverter() }
+    single { RepositoryConverter(globalScope.userHome) }
     single { IgnoreListConverter() }
   }
 

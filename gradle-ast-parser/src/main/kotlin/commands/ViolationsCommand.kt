@@ -29,8 +29,12 @@ import org.codehaus.groovy.ast.ASTNode
 import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
+import utils.ALLOWLIST_CLOSURES
+import utils.BUILD_FILES
+import utils.DISALLOWED_DEPENDENCIES
 import utils.Files
 import utils.StringPathFileReader
+import utils.VIOLATIONS
 import utils.exists
 import java.io.File
 import java.nio.file.Path
@@ -62,8 +66,8 @@ internal class ViolationsCommand(
     return runCatching {
       // Get current project and convert the Strings to the correct paths
       val currentProject = getProject()
-      val allowlist = globalScope.binary().resolve("allowlist-closures.txt").readLines().toSet()
-      val disallowedDeps = globalScope.binary().resolve("disallowed-dependencies.txt").readLines().toSet()
+      val allowlist = globalScope.binary().resolve(ALLOWLIST_CLOSURES).readLines().toSet()
+      val disallowedDeps = globalScope.binary().resolve(DISALLOWED_DEPENDENCIES).readLines().toSet()
 
       // Setup visitors that will visit each node of the AST
       visitors = VisitorFactory(
@@ -75,13 +79,14 @@ internal class ViolationsCommand(
 
       // Get all build files for this project.
       val buildFilesPath = globalScope.userHome.gradleAstParser().resolve(currentProject.name)
-        .resolve("build-files-list.txt")
+        .resolve(BUILD_FILES)
 
       if (!buildFilesPath.exists()) {
         logger.error(
           "You have not saved any build files to run ast parsing on. You can start " +
             "by running ./gradlew setup -p=<project-name>. You can find the list of projects " +
-            "we have cataloged in project-catalog.json."
+            "we have cataloged in project-catalog.json. If you're project is not on the list " +
+            "please add the name and project path there."
         )
         return 1
       }
@@ -121,8 +126,8 @@ internal class ViolationsCommand(
 
   private fun writeViolations(project: Project, violations: Set<Violation>): Path {
     val root = globalScope.userHome.gradleAstParser().resolve(project.name)
-    val out = files.createOrOverwriteFile(root.resolve("violations.txt").toString())!!
-    val violationString = violations.map { it.message }.joinToString(separator = "\n")
+    val out = files.createOrOverwriteFile(root.resolve(VIOLATIONS).toString())!!
+    val violationString = violations.joinToString(separator = "\n") { it.message }
     File(out.toString()).printWriter().use { out ->
       out.print(violationString)
     }
