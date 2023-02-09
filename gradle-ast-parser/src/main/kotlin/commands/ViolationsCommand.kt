@@ -22,6 +22,7 @@ import ast.visitor.Visitor
 import ast.visitor.VisitorFactory
 import ast.visitor.VisitorManager
 import catalog.Project
+import converter.UndesiredDependencyConverter
 import location.Binary.Companion.binary
 import location.GlobalScope
 import location.GradleBuildParser.Companion.gradleAstParser
@@ -56,7 +57,8 @@ internal class ViolationsCommand(
   private val stringSetReader: StringPathFileReader,
   private val globalScope: GlobalScope,
   private val files: Files,
-  private val visitorManager: VisitorManager
+  private val visitorManager: VisitorManager,
+  private val undesiredDependencyConverter: UndesiredDependencyConverter
 ) : Callable<Int> {
 
   private lateinit var visitors: List<Visitor>
@@ -72,7 +74,7 @@ internal class ViolationsCommand(
       // Setup visitors that will visit each node of the AST
       visitors = VisitorFactory(
         allowlist,
-        disallowedDeps,
+        undesiredDependencyConverter,
         logger,
         visitorManager
       ).create()
@@ -112,12 +114,13 @@ internal class ViolationsCommand(
         return 0
       }
 
-      val violationOutput = writeViolations(project = currentProject, violations.toSet())
+      // val violationOutput = writeViolations(project = currentProject, violations.toSet())
 
-      logger.info(
-        "There were ${violations.size} violations found for project ${currentProject.name}. " +
-          "To see a detailed list of all violations open $violationOutput"
-      )
+      // logger.info(
+      //   "There were ${violations.size} violations found for project ${currentProject.name}. " +
+      //     "To see a detailed list of all violations open $violationOutput"
+      // )
+      violations.forEach { logger.info(it.message) }
     }.fold(
       onSuccess = { 0 },
       onFailure = { 1 }

@@ -1,0 +1,9 @@
+{
+  "undesired": {
+    "slf4j": {
+      "name": "slf4f",
+      "declaration": "implementation(org.slf4j:slf4j-simple:1.7.10)",
+      "reason" : "This dependency should only be included for tests only. Please use the a test declaration such as implementation(org.slf4j:slf4j-simple:1.7.20)"
+    }
+  }
+}

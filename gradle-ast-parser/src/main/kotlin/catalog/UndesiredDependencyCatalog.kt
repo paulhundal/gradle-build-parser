@@ -22,23 +22,22 @@ import java.nio.file.Path
 import kotlin.io.path.readText
 
 @Serializable
-internal class ProjectCatalog(private val projects: Map<String, Project>) {
+internal class UndesiredDependencyCatalog(private val undesired: Map<String, UndesiredDependency>) {
 
-  constructor(vararg project: Pair<String, Project>) : this(project.toMap())
-
-  fun find(name: String): Project {
-    return projects[name]
-      ?: projects.values.firstOrNull { project -> project.name == name }
-      ?: throw IllegalArgumentException("No project found with name $name")
+  fun find(name: String): UndesiredDependency {
+    return undesired[name]
+      ?: undesired.values.firstOrNull { deps -> deps.name == name }
+      ?: throw IllegalArgumentException("No undesirable dependency found with name $name")
   }
 
   companion object {
-    fun of(file: Path): ProjectCatalog = file.readText().fromJson()
+    fun of(file: Path): UndesiredDependencyCatalog = file.readText().fromJson()
   }
 }
 
 @Serializable
-data class Project(
+internal data class UndesiredDependency(
   val name: String,
-  val path: String
+  val declaration: String,
+  val reason: String
 )

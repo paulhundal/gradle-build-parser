@@ -18,11 +18,12 @@ package ast.visitor
 
 import ast.rule.ClosureNotSupportedRule
 import ast.rule.UnsupportedDependencyRule
+import converter.UndesiredDependencyConverter
 import org.slf4j.Logger
 
 internal class VisitorFactory(
   private val allowList: Set<String>,
-  private val disallowedDependenciesList: Set<String>,
+  private val undesiredDependencyConverter: UndesiredDependencyConverter,
   private val logger: Logger,
   private val visitorManager: VisitorManager
 ) {
@@ -39,9 +40,9 @@ internal class VisitorFactory(
     val dependencyVisitors = DependenciesVisitor(
       dependencyRules = listOf(
         UnsupportedDependencyRule(
-          disallowedDependenciesList,
           logger,
-          visitorManager
+          visitorManager,
+          undesiredDependencyConverter
         )
       ),
       visitorManager = visitorManager

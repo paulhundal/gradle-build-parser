@@ -21,5 +21,6 @@ const val IGNORE_BUILDS = "ignore-builds.txt" // Which build files to ignore in 
 const val ALLOWLIST_CLOSURES = "allowlist-closures.txt" // Closures that are allowed
 const val DISALLOWED_DEPENDENCIES = "disallowed-dependencies.txt" // Dependencies that are not allowed
 const val PROJECT_CATALOG = "project-catalog.json" // Project configuration
+const val UNDESIRED_DEPENDENCIES = "undesired-dependencies.json" // Deps that violate your rules
 const val BUILD_FILES = "build-files.txt" // Where list of build files are cached for each project
 const val VIOLATIONS = "violations.txt" // Where all violations are output to

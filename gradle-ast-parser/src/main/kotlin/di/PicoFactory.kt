@@ -12,6 +12,7 @@ import converter.DisallowedDependenciesConverter
 import converter.IgnoreListConverter
 import converter.ProjectConverter
 import converter.RepositoryConverter
+import converter.UndesiredDependencyConverter
 import di.GenericKoinModule.Companion.genericKoinApplication
 import location.GlobalScope
 import location.Pwd.Companion.pwd
@@ -41,11 +42,12 @@ internal class PicoFactory(
 
   private val commands = module {
     single { SetupCommand(get(), get(), get(), get(), get(), get()) }
-    single { ViolationsCommand(get(), get(), get(), get(), get(), get()) }
+    single { ViolationsCommand(get(), get(), get(), get(), get(), get(), get()) }
   }
 
   private val catalogs = module {
     single { ProjectConverter(catalogLocator.findProject()) }
+    single { UndesiredDependencyConverter(catalogLocator.findUndesiredDependencies()) }
     single { DisallowedDependenciesConverter(get()) }
     single { AllowlistConverter(get(), get()) }
     single { RepositoryConverter(globalScope.userHome) }

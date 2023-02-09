@@ -1,4 +1,8 @@
-package catalog
+package converter
+
+import catalog.UndesiredDependency
+import catalog.UndesiredDependencyCatalog
+import picocli.CommandLine.ITypeConverter
 
 /**
  * Copyright 2022 Square Inc.
@@ -16,15 +20,11 @@ package catalog
  * limitations under the License.
  */
 
-import utils.Distribution
-import utils.PROJECT_CATALOG
-import utils.UNDESIRED_DEPENDENCIES
+internal class UndesiredDependencyConverter(
+  private val undesiredDependencyCatalog: UndesiredDependencyCatalog
+) : ITypeConverter<UndesiredDependency> {
 
-internal class CatalogLocator(private val distribution: Distribution) {
-  fun findProject() = ProjectCatalog.of(distribution.findFile(PROJECT_CATALOG))
-  fun findUndesiredDependencies() = UndesiredDependencyCatalog.of(
-    distribution.findFile(
-      UNDESIRED_DEPENDENCIES
-    )
-  )
+  override fun convert(value: String): UndesiredDependency {
+    return undesiredDependencyCatalog.find(value)
+  }
 }

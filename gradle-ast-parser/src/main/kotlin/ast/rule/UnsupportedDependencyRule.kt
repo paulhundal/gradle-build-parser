@@ -21,35 +21,45 @@ import ast.violation.UnsupportedDependencyViolation
 import ast.violation.Violation
 import ast.visitor.Visitor
 import ast.visitor.VisitorManager
+import catalog.UndesiredDependency
+import converter.UndesiredDependencyConverter
 import org.slf4j.Logger
 import java.nio.file.Path
 import java.util.TreeSet
 
 internal class UnsupportedDependencyRule(
-  private val disallowedDependencies: Set<String>,
   private val logger: Logger,
-  private val visitorManager: VisitorManager
+  private val visitorManager: VisitorManager,
+  private val undesiredDependencyConverter: UndesiredDependencyConverter
 ) : DependencyRule {
   override fun enforce(buildFile: Path, visitor: Visitor): Set<Violation> {
     val violations = TreeSet<Violation>()
     val nodes = visitorManager.getVisitedNodes()[visitor.javaClass] ?: return emptySet()
 
-    nodes.forEach {
-      val locations = it.value
-      val depStr = it.key
-      val dep = it.toDependency()
-      locations.forEach {
-        if (disallowedDependencies.contains(depStr)) {
-          violations.add(
-            UnsupportedDependencyViolation(
-              message = "You declared $dep at line $it in build file $buildFile. " +
-                "This dependency is not supported. Please replace or remove.",
-              buildFile = buildFile
-            )
-          )
-        }
-      }
+    val undesiredDeps = getUndesiredDeps()
+    nodes.flatMap {
+      it.toDependency()
+    }.filter { dep ->
+      undesiredDeps.any { it.declaration == dep.toString() }
+    }.associateBy { dep ->
+      undesiredDeps.first { it.declaration == dep.toString() }
+    }.forEach { (t, u) ->
+      violations.add(
+        UnsupportedDependencyViolation(
+          message = "You declared $u in build file $buildFile at line ${u.lineNumber} ." +
+            "This dependency declaration is not supported. ${t.reason}",
+          buildFile = buildFile
+        )
+      )
     }
-    return violations.toSet()
+    return violations.toSortedSet()
+  }
+
+  private fun getUndesiredDeps(): List<UndesiredDependency> {
+    return defaultUndesiredDeps.map { undesiredDependencyConverter.convert(it) }
+  }
+
+  companion object {
+    val defaultUndesiredDeps = listOf("slf4j")
   }
 }
