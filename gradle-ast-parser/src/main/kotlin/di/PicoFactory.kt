@@ -2,6 +2,8 @@ package di
 
 import ast.AstGraph
 import ast.DefaultAstGraph
+import ast.visitor.DefaultVisitorManager
+import ast.visitor.VisitorManager
 import catalog.CatalogLocator
 import commands.ViolationsCommand
 import commands.SetupCommand
@@ -12,6 +14,7 @@ import converter.ProjectConverter
 import converter.RepositoryConverter
 import di.GenericKoinModule.Companion.genericKoinApplication
 import location.GlobalScope
+import location.Pwd.Companion.pwd
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.koin.dsl.module
 import org.slf4j.Logger
@@ -37,8 +40,8 @@ internal class PicoFactory(
 ) : IFactory {
 
   private val commands = module {
-    single { SetupCommand(get(), get(), get(), get(), get(), get(), get()) }
-    single { ViolationsCommand(get(), get(), get(), get(), get(), get(), get()) }
+    single { SetupCommand(get(), get(), get(), get(), get(), get()) }
+    single { ViolationsCommand(get(), get(), get(), get(), get(), get()) }
   }
 
   private val catalogs = module {
@@ -52,6 +55,8 @@ internal class PicoFactory(
   private val locations = module {
     single { globalScope }
     single { globalScope.userHome }
+    single { globalScope.pwd() }
+    single { globalScope.userHome.currentProject }
   }
 
   private val utils = module {
@@ -60,6 +65,7 @@ internal class PicoFactory(
     single<FindProjectFiles> { DefaultFindProjectFiles() }
     single<Logger> { LoggerFactory.getLogger("AstParser") }
     single<Files> { HelpFiles(get()) }
+    single<VisitorManager> { DefaultVisitorManager() }
 
     single { RealDistribution.of(FileSystems.getDefault()) }
     single { StringPathFileReader() }

@@ -1,11 +1,27 @@
 package commands
 
+/**
+ * Copyright 2022 Square Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import catalog.Project
-import converter.IgnoreListConverter
 import converter.ProjectConverter
 import converter.RepositoryConverter
+import location.Binary.Companion.binary
+import location.GlobalScope
 import location.GradleBuildParser.Companion.gradleAstParser
-import location.UserHome
 import org.slf4j.Logger
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
@@ -14,9 +30,9 @@ import utils.Files
 import utils.FindProjectFiles
 import utils.StringFileWriter
 import utils.exists
-import java.nio.file.Paths
 import java.util.concurrent.Callable
 import kotlin.io.path.createDirectories
+import kotlin.io.path.readLines
 
 @Command(
   name = "setup",
@@ -30,9 +46,8 @@ internal class SetupCommand(
   private val logger: Logger,
   private val findProjectFiles: FindProjectFiles,
   private val fileWriter: StringFileWriter,
-  private val userHome: UserHome,
+  private val globalScope: GlobalScope,
   private val repositoryConverter: RepositoryConverter,
-  private val ignoreListConverter: IgnoreListConverter,
   private val files: Files
 ) : Callable<Int> {
 
@@ -47,15 +62,19 @@ internal class SetupCommand(
   lateinit var project: Project
 
   override fun call(): Int {
-    userHome.currentProject = project
+    globalScope.userHome.currentProject = project
 
-    val projectPath = repositoryConverter.convert(project.path) ?: Paths.get(project.path)
-    val ignoreBuilds = ignoreListConverter.convert(project.ignoreBuildsPathAsString)
+    val ignoreBuilds = globalScope.binary().resolve("ignore-builds.txt").readLines().map {
+      globalScope.fileSystem.getPath(it)
+    }.toSet()
+
+    val projectPath = repositoryConverter.convert(project.path)
+      ?: globalScope.fileSystem.getPath(project.path)
 
     logger.info("Saving build.gradle file paths for project ${project.name}")
     val buildFiles = findProjectFiles.getAll(projectPath, ignoreBuilds)
 
-    val gradleAstParser = userHome.gradleAstParser()
+    val gradleAstParser = globalScope.userHome.gradleAstParser()
 
     // Create all necessary preliminary directories
     if(!gradleAstParser.exists()) {

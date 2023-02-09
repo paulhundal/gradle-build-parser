@@ -1,14 +1,30 @@
 package commands
 
+/**
+ * Copyright 2022 Square Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import ast.AstGraph
 import ast.violation.Violation
 import ast.visitor.Visitor
 import ast.visitor.VisitorFactory
+import ast.visitor.VisitorManager
 import catalog.Project
-import converter.AllowlistConverter
-import converter.DisallowedDependenciesConverter
+import location.Binary.Companion.binary
+import location.GlobalScope
 import location.GradleBuildParser.Companion.gradleAstParser
-import location.UserHome
 import org.codehaus.groovy.ast.ASTNode
 import org.slf4j.Logger
 import picocli.CommandLine.Command
@@ -20,6 +36,7 @@ import java.io.File
 import java.nio.file.Path
 import java.util.TreeSet
 import java.util.concurrent.Callable
+import kotlin.io.path.readLines
 
 @Command(
   name = "violations",
@@ -33,10 +50,9 @@ internal class ViolationsCommand(
   private val logger: Logger,
   private val astGraph: AstGraph,
   private val stringSetReader: StringPathFileReader,
-  private val userHome: UserHome,
-  private val allowlistConverter: AllowlistConverter,
-  private val disallowedDependenciesConverter: DisallowedDependenciesConverter,
-  private val files: Files
+  private val globalScope: GlobalScope,
+  private val files: Files,
+  private val visitorManager: VisitorManager
 ) : Callable<Int> {
 
   private lateinit var visitors: List<Visitor>
@@ -46,24 +62,27 @@ internal class ViolationsCommand(
     return runCatching {
       // Get current project and convert the Strings to the correct paths
       val currentProject = getProject()
-      val allowlist = allowlistConverter.convert(currentProject.allowlistClosuresPathAsString)
-      val disallowedDeps = disallowedDependenciesConverter.convert(currentProject.disallowedDependenciesPathAsString)
+      val allowlist = globalScope.binary().resolve("allowlist-closures.txt").readLines().toSet()
+      val disallowedDeps = globalScope.binary().resolve("disallowed-dependencies.txt").readLines().toSet()
 
       // Setup visitors that will visit each node of the AST
       visitors = VisitorFactory(
         allowlist,
         disallowedDeps,
-        logger
+        logger,
+        visitorManager
       ).create()
 
       // Get all build files for this project.
-      val buildFilesPath = userHome.gradleAstParser().resolve(currentProject.name)
+      val buildFilesPath = globalScope.userHome.gradleAstParser().resolve(currentProject.name)
         .resolve("build-files-list.txt")
 
       if (!buildFilesPath.exists()) {
-        logger.error("You have not saved any build files to run ast parsing on. You can start " +
-          "by running ./gradlew setup -p=<project-name>. You can find the list of projects " +
-          "we have cataloged in project-catalog.json.")
+        logger.error(
+          "You have not saved any build files to run ast parsing on. You can start " +
+            "by running ./gradlew setup -p=<project-name>. You can find the list of projects " +
+            "we have cataloged in project-catalog.json."
+        )
         return 1
       }
 
@@ -90,8 +109,10 @@ internal class ViolationsCommand(
 
       val violationOutput = writeViolations(project = currentProject, violations.toSet())
 
-      logger.info("There were ${violations.size} violations found for project ${currentProject.name}. " +
-        "To see a detailed list of all violations open $violationOutput")
+      logger.info(
+        "There were ${violations.size} violations found for project ${currentProject.name}. " +
+          "To see a detailed list of all violations open $violationOutput"
+      )
     }.fold(
       onSuccess = { 0 },
       onFailure = { 1 }
@@ -99,7 +120,7 @@ internal class ViolationsCommand(
   }
 
   private fun writeViolations(project: Project, violations: Set<Violation>): Path {
-    val root = userHome.gradleAstParser().resolve(project.name)
+    val root = globalScope.userHome.gradleAstParser().resolve(project.name)
     val out = files.createOrOverwriteFile(root.resolve("violations.txt").toString())!!
     val violationString = violations.map { it.message }.joinToString(separator = "\n")
     File(out.toString()).printWriter().use { out ->
@@ -108,6 +129,5 @@ internal class ViolationsCommand(
     return out
   }
 
-  private fun getProject(): Project = userHome.currentProject
-
+  private fun getProject(): Project = globalScope.userHome.currentProject
 }
