@@ -60,6 +60,20 @@ Here is a small example of a project configuration for running the parser on thi
     },
 ```
 
+### Usage
+
+#### CLI
+
+```shell
+./gradlew run --args="setup -p=Development/<your-repo>" // Setup config for the project
+
+./gradlew run --args="violations" // Find ALL violations
+
+./gradlew run --args="violations <NAME_OF_VIOLATION>" // Find a certain violation
+
+./gradlew run --args="scan" // Output a scan of where to find important files
+```
+
 **Read the section on getting started for how to use this configuration**
 
 ## Getting Started
@@ -164,9 +178,9 @@ Every rule that is broken becomes a [Violation]("https://github.com/paulhundal/g
 To add to this list of violations take the following steps:
 
 1. Define a new violation type and place it in [IncludedViolation](https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/violation/IncludedViolation.kt)
-2. Create a [Rule]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/rule/Rule.kt) that enforces this violation.
-3. Modify [ViolationsCommand]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/commands/ViolationsCommand.kt) to include the new violation
-4. **IF** the node data you need isn't readily available, create a [Visitor]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/visitor/Visitor.kt) and add it to the [VisitorFactory]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/visitor/VisitorFactory.kt")
+2. Create a [Rule](https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/rule/Rule.kt) that enforces this violation.
+3. Modify [ViolationsCommand](https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/commands/ViolationsCommand.kt) to include the new violation
+4. **IF** the node data you need isn't readily available, create a [Visitor](https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/visitor/Visitor.kt) and add it to the [VisitorFactory]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/visitor/VisitorFactory.kt")
 5. Create a PR/Issue with the suggested changes
 
 ### Limitations
