@@ -1,4 +1,4 @@
-# Gradle AST Parser
+# Gradle AST Traverser (GAT)
 
 ## Table of Contents
 - [What is an *AST*?](#what-is-an-ast)
@@ -46,7 +46,7 @@ and the AST is its structured representation.
 
 ## Introduction
 
-Gradle AST Parser provides the capabilities to enforce rules on your build files without
+**GAT** provides the capabilities to enforce rules on your build files without
 relying on regex. The AST is built by the Groovy compiler (*this app does not support kotlin build files*)
 and is parsed based on a project configuration you define. 
 
@@ -56,10 +56,7 @@ Here is a small example of a project configuration for running the parser on thi
   "projects": {
     "ast-parser": {
       "name": "ast-parser",
-      "path": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser",
-      "disallowedDependenciesPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/disallowed-dependencies.txt",
-      "allowlistClosuresPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/allowlist-closures.txt",
-      "ignoreBuildsPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/ignore-builds.txt"
+      "path": "Development/gradle-build-parser/gradle-ast-parser"
     },
 ```
 
@@ -85,17 +82,11 @@ For example:
   "projects": {
     "ast-parser": {
       "name": "ast-parser", // name of the project
-      "path": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser", // path to the repo
-      "disallowedDependenciesPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/disallowed-dependencies.txt",
-      "allowlistClosuresPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/allowlist-closures.txt", // path to list of allowed closures. by default all are allowed. you can leave this empty if desired.
-      "ignoreBuildsPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/ignore-builds.txt" // path to list of build files to ignore. if you wish to scan all build files in your repo keep this empty.
+      "path": "Development/gradle-build-parser/gradle-ast-parser" // path to the repo
     },
     "register": {
       "name": "android-register",
-      "path": "/Users/phundal/Development/android-register",
-      "disallowedDependenciesPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/disallowed-dependencies.txt",
-      "allowlistClosuresPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/allowlist-closures.txt",
-      "ignoreBuildsPathAsString": "/Users/phundal/Development/gradle-build-parser/gradle-ast-parser/binary/ignore-builds.txt"
+      "path": "Development/android-register"
     }
   }
 }
@@ -107,9 +98,6 @@ The attributes in the configuration are **required**.
 
 - name: The name of the project. This is self defined
 - path: The full file path to the repository for this project
-- disallowedDependenciesPathAsString: File path to the dependencies that are not allowed. This will find violation against any declared dependency in the list. If all dependencies are allowed, leave this empty.
-- allowlistClosuresPathAsString: File path to the allow list of closures. This will find violations against all closures that are not "allowed". If none are allowed, leave this emtpy.
-- ignoreBuildsPathAsString: File path to the list of all build files you want to ignore. If you want to scan all build files for this project leave this empty.
 
 
 ## Setup
@@ -118,7 +106,7 @@ The setup command will bootstrap the environment in which the violation files, a
 This command should be run each time you update the project configuration file OR when switching to work on another project.
 
 ```shell
-./gradlew run --args="setup -p<full-path-to-project>"
+./gradlew run --args="setup -p=<full-path-to-project>"
 ```
 
 This will create a directory at `~HOME/.ast/<project-name>` in which all configurations are stored.
@@ -133,7 +121,8 @@ Violations are rules that build.gradle files do not adhere to, but are expected 
 At the time of writing, this tool supports the following Rules:
 
 - Unsupported Closure Rule: To allow list closures, update the allowlist-closures.txt file. Any closure that isn't listed will create a violation.
-- Unsupported Dependency Rule: To deny certain dependency declarations, update disallowed-dependencies.txt. Any dependency not declared here will be considered acceptable.
+- Duplicate Closure Rule: Any closure block declared more than once per build.gradle file will be considered a violation.
+- Duplicate Dependency Rules: Any dependency appearing more than once in a dependency block will be considered a violation.
 
 
 **Output of Violations**
@@ -150,8 +139,35 @@ You declared implementation(org.slf4j:slf4j-simple:1.7.10) at line 22 in build f
 To find all violations for your project:
 
 ```shell
-./gradlew run --args="violations"
+./gradlew run --args="violations" // check all violations
+./gradlew run --args"violations <TYPE>" // check for specific violation
 ```
+
+### Rules
+
+Rules are set and defined within the binary of this project. To modify the rules for your own project, update the following files as needed:
+
+```shell
+/binary/allowlist-closures.txt
+/binary/ignore-builds.txt
+/binary/project-catalog.json
+```
+
+1. allowlist-closures.txt -> Defines the set of all closures that ARE allowed.
+2. ignore-builds.txt -> Defines the set of all build files to ignore
+3. project-catalog.json -> Defines the configuration of your project and where to read source from
+
+Every rule that is broken becomes a [Violation]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/violation/Violation.kt)
+
+### Contributing
+
+To add to this list of violations take the following steps:
+
+1. Define a new violation type and place it in [IncludedViolation](https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/violation/IncludedViolation.kt)
+2. Create a [Rule]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/rule/Rule.kt) that enforces this violation.
+3. Modify [ViolationsCommand]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/commands/ViolationsCommand.kt) to include the new violation
+4. **IF** the node data you need isn't readily available, create a [Visitor]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/visitor/Visitor.kt) and add it to the [VisitorFactory]("https://github.com/paulhundal/gradle-build-parser/blob/master/gradle-ast-parser/src/main/kotlin/ast/visitor/VisitorFactory.kt")
+5. Create a PR/Issue with the suggested changes
 
 ### Limitations
 
@@ -162,10 +178,8 @@ as the one produced by Groovy.
 
 ### Future Work
 
-This is just the start of what AST parsing can do. I expect this project to include
+This is just the start of what AST parsing can do!
+As use cases arise this tool can help speed up build file investigations, modifications and analysis.
 
-- Showing test vs prod dependencies
-- Finding conflicting versions of dependency declarations
-- Be able to append/transform the AST
 
-And so much more! Please contribute! :)
+Please contribute! :)
