@@ -18,14 +18,14 @@ repositories {
 
 dependencies {
     implementation(platform('org.jetbrains.kotlin:kotlin-bom'))
-    implementation 'org.codehaus.groovy:groovy-all:2.4.21'
-    implementation 'org.slf4j:slf4j-simple:1.7.10'
-    implementation 'io.insert-koin:koin-core:3.1.6'
-    implementation 'com.squareup.okio:okio:3.0.0'
-    implementation 'info.picocli:picocli-codegen:4.6.2'
-    implementation 'info.picocli:picocli:4.6.2'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.7.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1'
+    implementation libs.groovy
+    implementation libs.slf4f
+    implementation libs.koin
+    implementation libs.okio
+    implementation libs.picocli.codegen
+    implementation libs.picocli
+    implementation libs.jackson
+    implementation libs.serialization
 }
 
 test {
