@@ -18,6 +18,7 @@ package commands
 
 import ast.violation.IncludedViolation
 import ast.violation.IncludedViolation.DuplicateClosures
+import ast.violation.IncludedViolation.DuplicateDependencies
 import ast.violation.IncludedViolation.UnsupportedClosures
 import ast.visitor.Visitor
 import ast.visitor.VisitorFactory
@@ -55,14 +56,13 @@ internal class ViolationsCommand(
     if (includeViolations.isEmpty()) {
       logger.info(
         "By not passing any parameters for VIOLATION this program will check " +
-          "all violations that are supported. If this wasn't the intention please see the" +
+          "all violations that are supported. If this wasn't the intention please see the " +
           "complete list of violation checks by running 'violations --help'"
       )
-      includeViolations.toMutableList().apply {
-        add(UnsupportedClosures)
-        add(DuplicateClosures)
-      }
+      includeViolations = arrayOf(UnsupportedClosures, DuplicateClosures, DuplicateDependencies)
     }
+
+    includeViolations.forEach { logger.info(it.name) }
     // Setup visitors that will visit each node of the AST
     val visitors = visitorFactory.create(includeViolations.toList())
     if (violationsConfiguration.applyFor(visitors, globalScope) == VALID) {

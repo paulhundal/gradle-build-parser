@@ -1,5 +1,7 @@
 package ast.violation
 
+import java.nio.file.Path
+
 /**
  * Copyright 2022 Square Inc.
  *
@@ -16,8 +18,7 @@ package ast.violation
  * limitations under the License.
  */
 
-enum class IncludedViolation {
-  UnsupportedClosures, // List all unsupported closures
-  DuplicateClosures, // Find all duplicate closures
-  DuplicateDependencies, // Find all duplicate dependencies
-}
+internal data class DuplicateDependencyViolation(
+  override val message: String,
+  override val buildFile: Path
+) : Violation

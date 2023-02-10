@@ -18,9 +18,12 @@ package ast.visitor
 
 import ast.rule.ClosureNotSupportedRule
 import ast.rule.ClosureRule
+import ast.rule.DependencyRule
 import ast.rule.DuplicateClosureRule
+import ast.rule.DuplicateDependenciesRule
 import ast.violation.IncludedViolation
 import ast.violation.IncludedViolation.DuplicateClosures
+import ast.violation.IncludedViolation.DuplicateDependencies
 import ast.violation.IncludedViolation.UnsupportedClosures
 import org.slf4j.Logger
 
@@ -32,6 +35,7 @@ internal class VisitorFactory(
 
   fun create(includedViolation: List<IncludedViolation>): List<Visitor> {
     val closureRules: MutableList<ClosureRule> = mutableListOf()
+    val dependencyRules: MutableList<DependencyRule> = mutableListOf()
     includedViolation.forEach { violation ->
       when (violation) {
         UnsupportedClosures -> {
@@ -40,8 +44,13 @@ internal class VisitorFactory(
         DuplicateClosures -> {
           closureRules.add(DuplicateClosureRule(visitorManager, allowList))
         }
+        DuplicateDependencies -> {
+          dependencyRules.add(DuplicateDependenciesRule(visitorManager, logger))
+        }
       }
     }
+
+
 
     val closureVisitors = ClosureVisitor(
       allowlistClosures = allowList,
@@ -50,6 +59,11 @@ internal class VisitorFactory(
       visitorManager = visitorManager
     )
 
-    return listOf(closureVisitors)
+    val dependenciesVisitor = DependenciesVisitor(
+      dependencyRules = dependencyRules.toList(),
+      visitorManager = visitorManager
+    )
+
+    return listOf(closureVisitors, dependenciesVisitor)
   }
 }
